@@ -9,7 +9,7 @@
 
 ## :loudspeaker: Apresentação
 
-Repositório para armazenar pequenos programas e exemplos na linguagem C para fins de estudo, backup de conhecimento e consulta.
+Projeto de controle aplicado em uma planta térmico através do controle PID digital com arduino.
 
 ## :clipboard: Instruções para rodar o projeto
 
