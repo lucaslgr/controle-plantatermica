@@ -15,24 +15,37 @@ const topics = {
 };
 
 //Variavel global para salvar ambos os valores no localStorage
-var measuredValues = {
+var dataReactionCurve = {
   temperatureY: [],//Valores em Y (temperatura)
   timeX: []//Valores em X (tempo)
 };
 
-function builChart() {
-  var ctx = document.getElementById("myChart").getContext("2d");
+async function builChart() {
+  //Peando o elemento canva para inserir o Gráfico de Linhas
+  let ctx = document.getElementById("reactionCurve").getContext("2d");
+  
+  //Se não tiver salvo no navegador, faz a request
+  if(!localStorage.getItem('graphic-values')){
+    dataReactionCurve = await fetch("data/dataReactionCurve.json")
+    .then(response => response.json())
+    .then(jsonResponse => jsonResponse);
+
+    //Salvando no navegador para não precisar ficar carregando o arquivo toda vez
+    localStorage.setItem('graphic-values', JSON.stringify(dataReactionCurve));
+  } else {
+    dataReactionCurve = JSON.parse(localStorage.getItem('graphic-values'));
+  }
 
   myLineChart = new Chart(ctx, {
     type: "line",
     data: {
-      labels: [], //Dados para o eixo X
+      labels: dataReactionCurve.timeX, //Dados para o eixo X
       datasets: [
         {
           label: "Temperatura",
           // backgroundColor: "rgb(155,0, 132)",
           borderColor: "rgb(55, 99, 132)",
-          data: [], //Dados para o eixo Y
+          data: dataReactionCurve.temperatureY, //Dados para o eixo Y
         },
       ],
     },
@@ -83,9 +96,9 @@ function onMessageArrived(msg) {
   let temperature = parseInt(msg);
   updateChart(currentTime, temperature);
 
-  measuredValues.temperatureY.push(temperature);
-  measuredValues.timeX.push(currentTime);
-  localStorage.setItem('graphic-values', JSON.stringify(measuredValues));
+  dataReactionCurve.temperatureY.push(temperature);
+  dataReactionCurve.timeX.push(currentTime);
+  localStorage.setItem('graphic-values', JSON.stringify(dataReactionCurve));
 }
 
 // function publishOnTopic(){
@@ -134,15 +147,67 @@ function btnFileDataDownload(event)
 {
   let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(localStorage.getItem('graphic-values'));
   event.target.setAttribute("href",     dataStr     );
-  event.target.setAttribute("download", "data.json");
+  event.target.setAttribute("download", "dataReactionCurve.json");
   event.target.click();
+}
+
+//Funcao que encontra os parametros para montar a G(s) aproximada da planta através do método de SMITH aplicado aos dados da curva de reação
+function  calcMethodSmithG()
+{
+  //Recuperando os dados da curva de reacao
+  let dataReactionCurve = JSON.parse(localStorage.getItem('graphic-values'));
+  
+  //Tamanho dos dados
+  let dataLenght = dataReactionCurve.timeX.length;
+
+  //Flag para controlar o loop for para quando os respectivos valores de tempo já tiverem sidos encontrados
+  let flagT28found = false, flagT63found =  false;
+  let t28_3, t63_2;
+  
+  //Valor inicial da curva de reação do sistema
+  let initialValue = dataReactionCurve.temperatureY[0];
+  //Valor de estabilizacao do sistema
+  let stabilizationValue = dataReactionCurve.temperatureY[dataLenght - 1];
+  //28.3% do valor de estabilizacao
+  let stabilizationValue28_3 = stabilizationValue * 0.283;
+  //63.2% do valor de estabilizacao
+  let stabilizationValue63_2 = stabilizationValue * 0.632;
+
+  //Encontrando t para 63.2% e 28.3% dos valores da curva respectivamente
+  for (let index = 0; index < dataLenght; index++) {
+    
+    if(dataReactionCurve.temperatureY[index] >= stabilizationValue28_3 && !flagT28found===true){
+      flagT28found = true;
+      t28_3 = dataReactionCurve.temperatureY[index];
+    }
+    if(dataReactionCurve.temperatureY[index] >= stabilizationValue63_2 && !flagT63found===true){
+      flagT63found = true;
+      t63_2 = dataReactionCurve.temperatureY[index];
+    }    
+  }
+
+  //Calculando a constante de tempo do sistema (TAL)
+  let constantTime_Tal = 1.5*(t63_2 - t28_3);
+  //Calculando o atraso de transporte (L)
+  let transportDelay_L = 1.5*(t28_3 - (t63_2/3));
+  //Calculando o ganho estático do sistema (K) = deltaSaida/deltaEntrada
+  let staticGain_K = (stabilizationValue - initialValue)/(1-0);
+
+  console.log(`Valor 63,2% do ganho: ${stabilizationValue63_2} | Valor 28,3% do ganho: ${stabilizationValue28_3}`);
+  console.log(`Tempo para o valor 63,2% do ganho: ${t63_2} | Tempo para o valor de 28,3% do ganho: ${t28_3}`);
+  console.log(`Tal: ${constantTime_Tal} | Atraso de Transporte: ${transportDelay_L} | Ganho Estático: ${staticGain_K}`);
+  document.querySelector('#variable-tal').value = constantTime_Tal;
+  document.querySelector('#variable-transport-delay').value = transportDelay_L;
+  document.querySelector('#variable-static-gain').value = staticGain_K;
 }
 
 (function () {
   builChart();
-  MQTTConnect();
+  // MQTTConnect();
 
   document.querySelector('#btn-data-download').addEventListener('click', btnFileDataDownload);
+
+  document.querySelector('#btn-method-smith-calc').addEventListener('click', calcMethodSmithG);
 })();
 
 function Utf8ArrayToStr(array) {

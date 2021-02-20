@@ -9,9 +9,52 @@
 </head>
 
 <body>
-  <h1>PID Control</h1>
-  <canvas id="myChart"></canvas>
-  <a id="btn-data-download" class="btn" href="">Download Data</a>
+  <header>
+    <h1 class="txt-center">Identificação da G(s) aproximada da planta</h1>
+  </header>
+
+  <section>
+    <div class="container">
+      <h2>Curva de Reação</h2>
+      <p>
+        Identificação da G(s) aproximada da planta através da aplicação do método de Smith na curva de reação da planta para resposta ao degrau.
+      </p>
+      <canvas id="reactionCurve"></canvas>
+      <a id="btn-data-download" class="btn" href="">Download Data</a>
+      
+      <hr>
+
+      <h3 class="txt-center">Método de Identificação de SMITH</h3>
+      <div class="d-flex row">
+        <div class="d-flex column f-1 method-introduction">
+          <h4>Explicação Teórica</h4>
+          <embed src="pdf/identificacao-metodo-smith.pdf" width="90%" height="400px" />
+        </div>
+        <div class="d-flex column f-1 method-calc">
+          <h4>Cálculo dos Parâmetros</h4>
+  
+          <label for="variable-tal">Constante de Tempo(Tal):
+            <input placeholder="T" type="text" readonly name="variable-tal" id="variable-tal">
+          </label>
+          
+          <label for="variable-transport-delay">Atraso de Transporte(L):
+            <input placeholder="L" type="text" readonly name="variable-transport-delay" id="variable-transport-delay">
+          </label>
+          
+          <label for="variable-static-gain">Ganho Estático(K):
+            <input placeholder="K" type="text" readonly name="variable-static-gain" id="variable-static-gain">
+          </label>
+          
+          <button id="btn-method-smith-calc" class="btn">Calcular</button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    
+  </section>
 </body>
 <!-- <script type="text/javascript" src="../pid-control/Chart.min.js"></script> -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"
@@ -19,5 +62,6 @@
   crossorigin="anonymous"></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script src="script.js"></script>
+
 
 </html>
